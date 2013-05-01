@@ -4,7 +4,7 @@ from string import letters
 
 import webapp2
 import jinja2
-import hashlib
+import hmac
 
 from google.appengine.ext import db
 
@@ -12,8 +12,9 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
+SECRET = 'imsosecret'
 def hash_str(s):
-    return hashlib.md5(s).hexdigest()
+    return hmac.new(SECRET, s).hexdigest()
 
 def make_secure_val(s):
     return "%s|%s" % (s, hash_str(s))
