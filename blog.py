@@ -164,6 +164,25 @@ class Signup(BlogHandler):
             params['error_username'] = "That's not a valid username."
             have_error = True
 
+        # check if user already exists
+        self.response.headers['Content-Type'] = 'text/plain'
+        user_cookie_str = self.request.cookies.get('users')
+        user_val = make_secure_val(username)
+        
+        if user_cookie_str:
+            user_cookie_list = user_cookie_str.split('||')            
+            if user_val in user_cookie_list:
+                params['error_username'] = "That user already exists."
+                have_error = True
+
+        # add this user to cookie if it is a new user
+        if not have_error:
+            if not user_cookie_str:
+                user_cookie_str = str("")
+            user_cookie_str = str(user_cookie_str + '||' + user_val)
+            self.response.headers.add_header('Set-Cookie', 'users=%s; Path=/' % user_cookie_str)
+
+
         if not valid_password(password):
             params['error_password'] = "That wasn't a valid password."
             have_error = True
@@ -176,9 +195,16 @@ class Signup(BlogHandler):
             have_error = True
 
         if have_error:
+            for param in params.keys():
+                self.write(param)
+                self.write('\n')
+            self.write('\nbelow are values:\n')
+            for param in params.values():
+                self.write(param)
+                self.write('\n')
             self.render('signup-form.html', **params)
         else:
-            self.redirect('/unit2/welcome?username=' + username)
+            self.redirect('/welcome?username=' + username)
 
 class Welcome(BlogHandler):
     def get(self):
@@ -186,12 +212,12 @@ class Welcome(BlogHandler):
         if valid_username(username):
             self.render('welcome.html', username = username)
         else:
-            self.redirect('/unit2/signup')
+            self.redirect('/signup')
 
 app = webapp2.WSGIApplication([('/', MainPage),
-                               ('/unit2/rot13', Rot13),
-                               ('/unit2/signup', Signup),
-                               ('/unit2/welcome', Welcome),
+                               ('/rot13', Rot13),
+                               ('/signup', Signup),
+                               ('/welcome', Welcome),
                                ('/blog/?', BlogFront),
                                ('/blog/([0-9]+)', PostPage),
                                ('/blog/newpost', NewPost),
