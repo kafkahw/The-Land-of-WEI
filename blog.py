@@ -145,6 +145,7 @@ EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
+
 class Signup(BlogHandler):
 
     def get(self):
@@ -165,24 +166,17 @@ class Signup(BlogHandler):
             have_error = True
 
         # check if user already exists
-        self.response.headers['Content-Type'] = 'text/plain'
         user_cookie_str = self.request.cookies.get('users')
         user_val = make_secure_val(username)
-        
         if user_cookie_str:
             user_cookie_list = user_cookie_str.split('||')            
             if user_val in user_cookie_list:
                 params['error_username'] = "That user already exists."
                 have_error = True
+        else:
+            user_cookie_str = ""
 
-        # add this user to cookie if it is a new user
-        if not have_error:
-            if not user_cookie_str:
-                user_cookie_str = str("")
-            user_cookie_str = str(user_cookie_str + '||' + user_val)
-            self.response.headers.add_header('Set-Cookie', 'users=%s; Path=/' % user_cookie_str)
-
-
+        # validate password
         if not valid_password(password):
             params['error_password'] = "That wasn't a valid password."
             have_error = True
@@ -190,29 +184,36 @@ class Signup(BlogHandler):
             params['error_verify'] = "Your passwords didn't match."
             have_error = True
 
+        # validate email
         if not valid_email(email):
             params['error_email'] = "That's not a valid email."
             have_error = True
 
+        # re-display signup form if having error
         if have_error:
-            for param in params.keys():
-                self.write(param)
-                self.write('\n')
-            self.write('\nbelow are values:\n')
-            for param in params.values():
-                self.write(param)
-                self.write('\n')
             self.render('signup-form.html', **params)
         else:
-            self.redirect('/welcome?username=' + username)
+            # add new user into cookies
+            user_cookie_str = str(user_cookie_str + '||' + user_val)
+            self.response.headers.add_header('Set-Cookie', 'users=%s; Path=/' % user_cookie_str)
+            
+            # redirect to welcome page
+            self.redirect('/welcome')
+
 
 class Welcome(BlogHandler):
     def get(self):
-        username = self.request.get('username')
-        if valid_username(username):
-            self.render('welcome.html', username = username)
-        else:
+        user_cookie_str = self.request.cookies.get('users')
+        if not user_cookie_str:
             self.redirect('/signup')
+        else:
+            user_cookie = user_cookie_str.split('||')[-1]
+            if check_secure_val(user_cookie):
+                user = user_cookie.split('|')[0]
+                self.render('welcome.html', username = user)
+            else:
+                self.redirect('/signup')
+
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/rot13', Rot13),
