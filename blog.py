@@ -5,12 +5,28 @@ from string import letters
 import webapp2
 import jinja2
 import hmac
+import hashlib
+import random
+import string
 
 from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
+
+def make_salt():
+    return ''.join(random.choice(string.letters) for x in xrange(5))
+
+def make_pw_hash(name, pw, salt = None):
+    if not salt:
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s,%s' % (h, salt)
+
+def valid_pw(name, pw, h):
+    salt = h.split(',')[1]
+    return h == make_pw_hash(name, pw, salt)
 
 SECRET = 'imsosecret'
 def hash_str(s):
@@ -146,6 +162,16 @@ def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
 
+###### signup stuff
+def user_key(name = 'default'):
+    return db.Key.from_path('users', name)
+
+class User(db.Model):
+    username = db.StringProperty(required = True)
+    password = db.StringProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+
+
 class Signup(BlogHandler):
 
     def get(self):
@@ -166,15 +192,10 @@ class Signup(BlogHandler):
             have_error = True
 
         # check if user already exists
-        user_cookie_str = self.request.cookies.get('users')
-        user_val = make_secure_val(username)
-        if user_cookie_str:
-            user_cookie_list = user_cookie_str.split('||')            
-            if user_val in user_cookie_list:
-                params['error_username'] = "That user already exists."
-                have_error = True
-        else:
-            user_cookie_str = ""
+        matched_users = User.all().filter('username =', username).get()
+        if matched_users:
+            params['error_username'] = "That user already exists."
+            have_error = True
 
         # validate password
         if not valid_password(password):
@@ -193,9 +214,13 @@ class Signup(BlogHandler):
         if have_error:
             self.render('signup-form.html', **params)
         else:
-            # add new user into cookies
-            user_cookie_str = str(user_cookie_str + '||' + user_val)
-            self.response.headers.add_header('Set-Cookie', 'users=%s; Path=/' % user_cookie_str)
+            # add new user into database         
+            user = User(parent = user_key(), username = username, password = make_pw_hash(username, password))
+            user.put()
+
+            # update cookies
+            user_id = str(user.key().id())
+            self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % make_secure_val(user_id))
             
             # redirect to welcome page
             self.redirect('/welcome')
@@ -203,16 +228,19 @@ class Signup(BlogHandler):
 
 class Welcome(BlogHandler):
     def get(self):
-        user_cookie_str = self.request.cookies.get('users')
-        if not user_cookie_str:
-            self.redirect('/signup')
-        else:
-            user_cookie = user_cookie_str.split('||')[-1]
+        user_cookie = self.request.cookies.get('user_id')
+        # if the user is valid, print welcome
+        if user_cookie:
             if check_secure_val(user_cookie):
-                user = user_cookie.split('|')[0]
-                self.render('welcome.html', username = user)
-            else:
-                self.redirect('/signup')
+                user_id = user_cookie.split('|')[0]
+                key = db.Key.from_path('User', int(user_id), parent=user_key())
+                user = db.get(key)
+                if user:
+                    self.render('welcome.html', username = user.username)
+                    return
+
+        # otherwise back to signup due to error    
+        self.redirect('/signup')
 
 
 app = webapp2.WSGIApplication([('/', MainPage),
