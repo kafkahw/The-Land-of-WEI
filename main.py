@@ -1,7 +1,7 @@
 import webapp2
 import jinja2
 
-from lib.utils import make_secure_val, check_secure_val
+from libs.utils import make_secure_val, check_secure_val
 from blog import BlogHandler, Signup, Login, Logout, Welcome, BlogFront, PostPage, NewPost
 from rot13 import Rot13
 

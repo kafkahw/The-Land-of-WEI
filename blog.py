@@ -1,8 +1,8 @@
 import webapp2
 
-from lib.utils import *
-from lib.db.post import Post
-from lib.db.user import User
+from libs.utils import *
+from libs.db.post import Post
+from libs.db.user import User
 from google.appengine.ext import db
 
 
