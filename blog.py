@@ -226,6 +226,46 @@ class Signup(BlogHandler):
             self.redirect('/welcome')
 
 
+class Login(BlogHandler):
+    def get(self):
+        self.render("login-form.html")
+
+    def post(self):
+        username = self.request.get('username')
+        password = self.request.get('password')
+
+        # determine if this user is valid i.e. user exists and password matches
+        have_error = True
+        matched_users = User.all().filter('username =', username).get()
+        if matched_users:
+            hashed_pwd = matched_users.password
+            if valid_pw(username, password, hashed_pwd):
+                have_error = False
+
+        # if no error, redirect to welcome page
+        if not have_error:
+            # update cookies
+            user_id = str(matched_users.key().id())
+            self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % make_secure_val(user_id))
+
+            # redirect to welcome page
+            self.redirect('/welcome')
+        
+        # if has error, ask for re-entry
+        else:
+            error_login = 'Invalid login'
+            self.render("login-form.html", error_login=error_login)
+
+
+class Logout(BlogHandler):
+    def get(self):
+        # clear cookies
+        self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
+
+        # redirect to signup page
+        self.redirect('/signup')
+
+
 class Welcome(BlogHandler):
     def get(self):
         user_cookie = self.request.cookies.get('user_id')
@@ -246,6 +286,8 @@ class Welcome(BlogHandler):
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/rot13', Rot13),
                                ('/signup', Signup),
+                               ('/login', Login),
+                               ('/logout', Logout),
                                ('/welcome', Welcome),
                                ('/blog/?', BlogFront),
                                ('/blog/([0-9]+)', PostPage),
