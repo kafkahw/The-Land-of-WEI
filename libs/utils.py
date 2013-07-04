@@ -6,6 +6,7 @@ import hmac
 import hashlib
 import random
 import string
+from google.appengine.ext import db
 
 # define the template dir and jinja environment
 cur_dir = os.path.dirname(__file__)

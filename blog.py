@@ -6,14 +6,6 @@ from libs.db.user import User
 from google.appengine.ext import db
 
 
-##### define ancestor keys for models
-def blog_key(name = 'default'):
-    return db.Key.from_path('blogs', name)
-
-def user_key(name = 'default'):
-    return db.Key.from_path('users', name)
-
-
 ##### blog stuff
 class BlogHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -125,7 +117,10 @@ class Signup(BlogHandler):
             self.render('signup-form.html', **params)
         else:
             # add new user into database         
-            user = User(parent = user_key(), username = username, password = make_pw_hash(username, password))
+            user = User(parent = user_key(), 
+                        username = username, 
+                        password = make_pw_hash(username, password),
+                        email = email)
             user.put()
 
             # update cookies
