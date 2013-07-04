@@ -15,14 +15,14 @@ class User(db.Model):
 
     @classmethod
     def by_name(cls, name):
-    	u = User.all().filter('name =', name).get()
+    	u = User.all().filter('username =', name).get()
     	return u
 	
 	@classmethod
 	def register(cls, name, pw, email = None):
 		pw_hash = make_pw_hash(name, pw)
 		return User(parent = user_key(),
-					name = name,
+					username = name,
 					password = pw_hash,
 					email = email)
 

@@ -94,7 +94,7 @@ class Signup(BlogHandler):
             have_error = True
 
         # check if user already exists
-        matched_users = User.all().filter('username =', username).get()
+        matched_users = User.by_name(username)
         if matched_users:
             params['error_username'] = "That user already exists."
             have_error = True
