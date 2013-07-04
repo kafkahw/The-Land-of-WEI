@@ -28,9 +28,11 @@ class BlogHandler(webapp2.RequestHandler):
         return cookie_val and check_secure_val(cookie_val)
 
     def login(self, user):
+        # set user_id cookie
         self.set_secure_cookie('user_id', str(user.key().id()))
 
-    def logout(sef):
+    def logout(self):
+        # clear user_id cookie
         self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
 
     def initialize(self, *a, **kw):
@@ -147,10 +149,7 @@ class Login(BlogHandler):
 
 class Logout(BlogHandler):
     def get(self):
-        # clear cookies
-        self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
-
-        # redirect to signup page
+        self.logout()
         self.redirect('/signup')
 
 
