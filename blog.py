@@ -134,25 +134,12 @@ class Login(BlogHandler):
     def post(self):
         username = self.request.get('username')
         password = self.request.get('password')
-
-        # determine if this user is valid i.e. user exists and password matches
-        have_error = True
-        matched_users = User.all().filter('username =', username).get()
-        if matched_users:
-            hashed_pwd = matched_users.password
-            if valid_pw(username, password, hashed_pwd):
-                have_error = False
-
-        # if no error, redirect to welcome page
-        if not have_error:
-            # update cookies
-            user_id = str(matched_users.key().id())
-            self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % make_secure_val(user_id))
-
-            # redirect to welcome page
-            self.redirect('/welcome')
         
-        # if has error, ask for re-entry
+        # check login info against database
+        u = User.login(username, password)
+        if u:
+            self.login(u)
+            self.redirect('/welcome')
         else:
             error_login = 'Invalid login'
             self.render("login-form.html", error_login=error_login)
