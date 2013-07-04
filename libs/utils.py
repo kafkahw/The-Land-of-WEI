@@ -13,6 +13,14 @@ template_dir = os.path.join(os.path.dirname(cur_dir), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
+##### define ancestor keys for models
+def blog_key(name = 'default'):
+    return db.Key.from_path('blogs', name)
+
+def user_key(name = 'default'):
+    return db.Key.from_path('users', name)
+
+
 # covenient rendering templates
 def render_str(template, **params):
     t = jinja_env.get_template(template)
