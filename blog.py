@@ -169,18 +169,9 @@ class Logout(BlogHandler):
 
 class Welcome(BlogHandler):
     def get(self):
-        user_cookie = self.request.cookies.get('user_id')
-        # if the user is valid, print welcome
-        if user_cookie:
-            if check_secure_val(user_cookie):
-                user_id = user_cookie.split('|')[0]
-                key = db.Key.from_path('User', int(user_id), parent=user_key())
-                user = db.get(key)
-                if user:
-                    self.render('welcome.html', username = user.username)
-                    return
-
-        # otherwise back to signup due to error    
-        self.redirect('/signup')
+        if self.user:
+            self.render('welcome.html', username = self.user.username)
+        else:
+            self.redirect('/signup')    
 
 
