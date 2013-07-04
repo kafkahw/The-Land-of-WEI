@@ -11,24 +11,24 @@ class User(db.Model):
 
     @classmethod
     def by_id(cls, uid):
-    	return User.get_by_id(uid, parent = user_key())
+        return User.get_by_id(uid, parent = user_key())
 
     @classmethod
     def by_name(cls, name):
-    	u = User.all().filter('username =', name).get()
-    	return u
-	
-	@classmethod
-	def register(cls, name, pw, email = None):
-		pw_hash = make_pw_hash(name, pw)
-		return User(parent = user_key(),
-					username = name,
-					password = pw_hash,
-					email = email)
+        u = User.all().filter('username =', name).get()
+        return u
+    
+    @classmethod
+    def register(cls, name, pw, email = None):
+        pw_hash = make_pw_hash(name, pw)
+        return User(parent = user_key(),
+                    username = name,
+                    password = pw_hash,
+                    email = email)
 
-	@classmethod
-	def login(cls, name, pw):
-		u = cls.by_name(name)
-		if u and valid_pw(name, pw, u.password):
-			return u
+    @classmethod
+    def login(cls, name, pw):
+        u = cls.by_name(name)
+        if u and valid_pw(name, pw, u.password):
+            return u
 

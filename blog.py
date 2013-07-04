@@ -116,16 +116,12 @@ class Signup(BlogHandler):
         if have_error:
             self.render('signup-form.html', **params)
         else:
-            # add new user into database         
-            user = User(parent = user_key(), 
-                        username = username, 
-                        password = make_pw_hash(username, password),
-                        email = email)
+            # add new user into database
+            user = User.register(username, password, email)
             user.put()
 
-            # update cookies
-            user_id = str(user.key().id())
-            self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % make_secure_val(user_id))
+            # new user login (update user cookie)
+            self.login(user)
             
             # redirect to welcome page
             self.redirect('/welcome')
