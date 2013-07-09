@@ -1,4 +1,5 @@
 import webapp2
+import json
 
 from libs.utils import *
 from libs.db.post import Post
@@ -12,10 +13,16 @@ class BlogHandler(webapp2.RequestHandler):
         self.response.out.write(*a, **kw)
 
     def render_str(self, template, **params):
+        params['user'] = self.user
         return render_str(template, **params)
 
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
+
+    def render_json(self, obj):
+        json_txt = json.dumps(obj)
+        self.response.headers['Content-Type'] = 'application/json; charset=UTF-8'
+        self.write(json_txt)
 
     def set_secure_cookie(self, name, val):
         cookie_val = make_secure_val(val)
@@ -40,12 +47,19 @@ class BlogHandler(webapp2.RequestHandler):
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.by_id(int(uid))
 
+        if self.request.url.endswith('.json'):
+            self.format = 'json'
+        else:
+            self.format = 'html'
+
 
 class BlogFront(BlogHandler):
     def get(self):
         posts = Post.all().order('-created')
-        self.render('front.html', posts = posts)
-
+        if self.format == 'html':
+            self.render('front.html', posts = posts)
+        else:
+            return self.render_json([p.as_dict() for p in posts])
 
 class PostPage(BlogHandler):
     def get(self, post_id):
@@ -56,7 +70,10 @@ class PostPage(BlogHandler):
             self.error(404)
             return
 
-        self.render("permalink.html", post = post)
+        if self.format == 'html':
+            self.render('permalink.html', post = post)
+        else:
+            self.render_json(post.as_dict())
 
 
 class NewPost(BlogHandler):
