@@ -31,9 +31,9 @@ class MainPage(BlogHandler):
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/rot13', Rot13),
-                               ('/signup', Signup),
-                               ('/login', Login),
-                               ('/logout', Logout),
+                               ('/blog/signup', Signup),
+                               ('/blog/login', Login),
+                               ('/blog/logout', Logout),
                                ('/welcome', Welcome),
                                ('/blog/?(?:\.json)?', BlogFront),
                                ('/blog/([0-9]+)(?:\.json)?', PostPage),
