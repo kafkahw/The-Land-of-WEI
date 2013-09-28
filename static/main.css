@@ -81,5 +81,6 @@ input[type=submit] {
 
 .post-content {
     margin-top: 5px;
+    word-wrap: break-word;
 }
 
