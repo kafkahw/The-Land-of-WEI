@@ -4,7 +4,9 @@ import json
 from libs.utils import *
 from libs.db.post import Post
 from libs.db.user import User
+
 from google.appengine.ext import db
+from google.appengine.api import memcache
 
 
 ##### blog stuff
@@ -55,23 +57,36 @@ class BlogHandler(webapp2.RequestHandler):
 
 class BlogFront(BlogHandler):
     def get(self):
-        posts = Post.all().order('-created')
+        posts, age = get_posts()
         if self.format == 'html':
-            self.render('front.html', posts = posts)
+            self.render('front.html', posts = posts, age = age_str(age))
         else:
             return self.render_json([p.as_dict() for p in posts])
 
 class PostPage(BlogHandler):
     def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
+        # memcache key for a particular post
+        post_key = 'POST_' + post_id
 
+        # retrieve post from memcache first
+        post, age = age_get(post_key)
+
+        # if not in memcache, grab it from database
         if not post:
-            self.error(404)
-            return
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+
+            # if not in database, throw errors
+            if not post:
+                self.error(404)
+                return
+
+            # otherwise, update memcache with post
+            age_set(post_key, post)
+            age = 0
 
         if self.format == 'html':
-            self.render('permalink.html', post = post)
+            self.render('permalink.html', post = post, age = age_str(age))
         else:
             self.render_json(post.as_dict())
 
@@ -86,7 +101,7 @@ class NewPost(BlogHandler):
 
         if subject and content:
             p = Post(parent = blog_key(), subject = subject, content = content)
-            p.put()
+            add_post(p)
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
@@ -178,3 +193,37 @@ class Welcome(BlogHandler):
             self.redirect('/blog/signup')    
 
 
+class FlushMemcache(BlogHandler):
+    """
+        Flushing all caches in memcache
+    """
+    def get(self):
+        memcache.flush_all()
+        self.redirect('/blog')
+        
+
+
+def add_post(post):
+    # add post to database
+    post.put()
+
+    # update cached posts
+    get_posts(update = True)
+
+    return str(post.key().id())
+
+
+def get_posts(update = False):
+    mc_key = 'BLOGS'    # memcache key for front page
+
+    # look into memcache first
+    posts, age = age_get(mc_key)
+
+    # if not in memcache or need to update
+    if update or posts is None:
+        q = Post.all().order('-created').fetch(limit = 10)
+        posts = list(q)
+        age_set(mc_key, posts)
+        age = 0
+
+    return posts, age

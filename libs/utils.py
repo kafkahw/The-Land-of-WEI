@@ -6,7 +6,12 @@ import hmac
 import hashlib
 import random
 import string
+
+from datetime import datetime
+
 from google.appengine.ext import db
+from google.appengine.api import memcache
+
 
 # define the template dir and jinja environment
 cur_dir = os.path.dirname(__file__)
@@ -73,3 +78,28 @@ def valid_password(password):
 
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
+
+
+def age_set(key, val):
+    save_time = datetime.utcnow()
+    memcache.set(key, (val, save_time))
+
+
+def age_get(key):
+    r = memcache.get(key)
+    if r:
+        val, save_time = r
+        age = (datetime.utcnow() - save_time).total_seconds()
+    else:
+        val, age = None, 0
+
+    return val, age
+
+
+def age_str(age):
+    s = "queried %s seconds ago"
+    age = int(age)
+    if age == 1:
+        s = s.replace("seconds", "second")
+    return s % age
+

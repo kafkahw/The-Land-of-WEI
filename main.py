@@ -1,7 +1,9 @@
 import webapp2
 
 from libs.utils import make_secure_val, check_secure_val
-from blog import BlogHandler, Signup, Login, Logout, Welcome, BlogFront, PostPage, NewPost
+from blog import BlogHandler
+from blog import Signup, Login, Logout, Welcome, FlushMemcache
+from blog import BlogFront, PostPage, NewPost
 from rot13 import Rot13
 
 
@@ -38,5 +40,6 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/?(?:\.json)?', BlogFront),
                                ('/blog/([0-9]+)(?:\.json)?', PostPage),
                                ('/blog/newpost', NewPost),
+                               ('/blog/flush', FlushMemcache),
                                ],
                               debug=True)
