@@ -11,6 +11,14 @@
     CS 253 Blog
   </a>
 
+  <div class="login-area">
+  {% block login %}
+  	<a class="login-link" href="/blog/login">login</a>
+  	|
+  	<a class="login-link" href="/blog/signup">signup</a>
+  {% endblock %}
+  </div>
+
   <div id="content">
   {% block content %}
   {% endblock %}
