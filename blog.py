@@ -59,7 +59,15 @@ class BlogFront(BlogHandler):
     def get(self):
         posts, age = get_posts()
         if self.format == 'html':
-            self.render('front.html', posts = posts, age = age_str(age))
+            if self.user:
+                self.render('front-with-login.html', 
+                            posts = posts,
+                            age = age_str(age),
+                            username = self.user.username)
+            else:
+                self.render('front.html', 
+                            posts = posts, 
+                            age = age_str(age))
         else:
             return self.render_json([p.as_dict() for p in posts])
 
@@ -86,7 +94,15 @@ class PostPage(BlogHandler):
             age = 0
 
         if self.format == 'html':
-            self.render('permalink.html', post = post, age = age_str(age))
+            if self.user:
+                self.render('permalink-with-login.html',
+                            post = post,
+                            age = age_str(age),
+                            username = self.user.username)
+            else:
+                self.render('permalink.html', 
+                            post = post, 
+                            age = age_str(age))
         else:
             self.render_json(post.as_dict())
 
