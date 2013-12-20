@@ -10,7 +10,12 @@ from google.appengine.api import memcache
 
 
 ##### blog stuff
+
+MC_BLOG_KEY = 'BLOGS'       # memcache key for front page
+FRONT_PAGE_LENTH = 10       # number of posts in front page
+
 class BlogHandler(webapp2.RequestHandler):
+
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
 
@@ -109,7 +114,10 @@ class PostPage(BlogHandler):
 
 class NewPost(BlogHandler):
     def get(self):
-        self.render("newpost.html")
+        if self.user:
+            self.render("newpost.html", username=self.user.username)
+        else:
+            self.redirect('/blog/login')
 
     def post(self):
         subject = self.request.get('subject')
@@ -121,7 +129,10 @@ class NewPost(BlogHandler):
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
-            self.render("newpost.html", subject=subject, content=content, error=error)
+            self.render("newpost.html", subject=subject, 
+                                        content=content, 
+                                        error=error,
+                                        username=self.user.username)
 
 
 class Signup(BlogHandler):
@@ -174,7 +185,7 @@ class Signup(BlogHandler):
             self.login(user)
             
             # redirect to welcome page
-            self.redirect('/welcome')
+            self.redirect('/blog')
 
 
 class Login(BlogHandler):
@@ -189,7 +200,7 @@ class Login(BlogHandler):
         u = User.login(username, password)
         if u:
             self.login(u)
-            self.redirect('/welcome')
+            self.redirect('/blog')
         else:
             error_login = 'Invalid login'
             self.render("login-form.html", error_login=error_login)
@@ -198,7 +209,7 @@ class Login(BlogHandler):
 class Logout(BlogHandler):
     def get(self):
         self.logout()
-        self.redirect('/blog/signup')
+        self.redirect('/blog')
 
 
 class Welcome(BlogHandler):
@@ -206,7 +217,7 @@ class Welcome(BlogHandler):
         if self.user:
             self.render('welcome.html', username = self.user.username)
         else:
-            self.redirect('/blog/signup')    
+            self.redirect('/blog/signup')
 
 
 class FlushMemcache(BlogHandler):
@@ -216,30 +227,38 @@ class FlushMemcache(BlogHandler):
     def get(self):
         memcache.flush_all()
         self.redirect('/blog')
-        
 
 
 def add_post(post):
     # add post to database
     post.put()
 
-    # update cached posts
-    get_posts(update = True)
+    # get current posts in cached posts
+    posts, age = age_get(MC_BLOG_KEY)
+
+    # pop out the last one if we already have enough elements
+    if len(posts) == FRONT_PAGE_LENTH:
+        posts.pop()
+
+    # insert new post at the front of posts list
+    posts.insert(0, post)
+
+    # update memcache
+    age_set(MC_BLOG_KEY, posts)
 
     return str(post.key().id())
 
 
-def get_posts(update = False):
-    mc_key = 'BLOGS'    # memcache key for front page
+def get_posts():
 
     # look into memcache first
-    posts, age = age_get(mc_key)
+    posts, age = age_get(MC_BLOG_KEY)
 
-    # if not in memcache or need to update
-    if update or posts is None:
-        q = Post.all().order('-created').fetch(limit = 10)
+    # if not in memcache
+    if posts is None:
+        q = Post.all().order('-created').fetch(limit = FRONT_PAGE_LENTH)
         posts = list(q)
-        age_set(mc_key, posts)
+        age_set(MC_BLOG_KEY, posts)
         age = 0
 
     return posts, age

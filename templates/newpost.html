@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block login%}
+  {{username}} (<a class="login-link" href="/blog/logout">logout</a>)
+{% endblock %}
+
 {% block content %}
   <h2>new post</h2>
 
