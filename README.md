@@ -1,4 +1,4 @@
-cs253_udacity
+The_Land_of_WEI
 =============
 
-projects of cs253 on Udacity
+This blog actually derives from projects of CS253 on Udacity. It is a small, simple but well-equipped blog which is written from scratch.
